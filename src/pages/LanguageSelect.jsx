@@ -60,9 +60,8 @@ export default function LanguageSelect() {
           <h1 style={{
             fontFamily: 'Montserrat, sans-serif',
             fontSize: '2.8rem',
-            fontWeight: '800',
+            fontWeight: '200',
             color: '#fdf6ee',
-            letterSpacing: '0.25em',
             textTransform: 'uppercase',
             lineHeight: 1,
           }}>
@@ -136,7 +135,6 @@ export default function LanguageSelect() {
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
             }}
           >
-            <div className="text-3xl mb-2">🇬🇧</div>
             <div style={{ fontFamily:'Montserrat,sans-serif', color:'#fdf6ee', fontWeight:'600', letterSpacing:'0.15em', fontSize:'0.9rem' }}>
               ENGLISH
             </div>
@@ -163,7 +161,6 @@ export default function LanguageSelect() {
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
             }}
           >
-            <div className="text-3xl mb-2">🇦🇪</div>
             <div style={{ fontFamily:'Noto Naskh Arabic,serif', color:'#fdf6ee', fontWeight:'600', fontSize:'1.1rem' }}>
               عربي
             </div>
