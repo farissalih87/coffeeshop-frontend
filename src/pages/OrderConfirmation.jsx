@@ -9,12 +9,16 @@ const B = {
   brand: '#7e2b3f',
   gold:  '#c9956b',
   cream: '#fdf6ee',
-  blush: '#fdf2f4',
+}
+
+const fmt = (val) => {
+  const n = parseFloat(val)
+  return isNaN(n) ? '0' : n.toFixed(0)
 }
 
 const LOCATION_LABELS = {
-  salon:     { en:"Men's Salon ✂️",           ar:"صالون الرجال ✂️"              },
-  reception: { en:"Car Care Reception 🚗",     ar:"استقبال السيارات 🚗"          },
+  salon:     { en:"Men's Salon ✂️",        ar:"صالون الرجال ✂️"        },
+  reception: { en:"Car Care Reception 🚗",  ar:"استقبال السيارات 🚗"    },
 }
 
 export default function OrderConfirmation() {
@@ -23,21 +27,20 @@ export default function OrderConfirmation() {
   const { lang }  = useLanguageStore()
   const clearCart = useCartStore(s => s.clearCart)
   const isRTL     = lang === 'ar'
-
-  // Get order from navigation state
-  const order = location.state?.order
+  const order     = location.state?.order
 
   useEffect(() => {
     clearCart()
   }, [])
 
-  // If no order data, go back to menu
   if (!order) {
     navigate('/menu')
     return null
   }
 
   const locLabel = LOCATION_LABELS[order.location]?.[lang] || order.location
+  const orderItems = Array.isArray(order.items) ? order.items : []
+  const orderTotal = parseFloat(order.total) || 0
 
   return (
     <div
@@ -49,39 +52,30 @@ export default function OrderConfirmation() {
         padding:'24px 16px', position:'relative', overflow:'hidden',
       }}
     >
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes ping{0%{transform:scale(1);opacity:1}75%,100%{transform:scale(1.8);opacity:0}}`}</style>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes ping{0%{transform:scale(1);opacity:1}75%,100%{transform:scale(2);opacity:0}}
+      `}</style>
 
-      {/* Decorative rings */}
+      {/* Rings */}
       {[280,430,580].map(s => (
         <div key={s} style={{
           position:'absolute', top:'50%', left:'50%',
           transform:'translate(-50%,-50%)',
           width:s, height:s, borderRadius:'50%',
-          border:'1px solid rgba(255,255,255,0.05)',
-          pointerEvents:'none',
+          border:'1px solid rgba(255,255,255,0.05)', pointerEvents:'none',
         }} />
       ))}
-
-      {/* Gold shimmer top */}
-      <div style={{
-        position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
-        width:280, height:1,
-        background:'linear-gradient(to right, transparent, rgba(201,149,107,0.5), transparent)',
-      }} />
-      <div style={{
-        position:'absolute', bottom:0, left:'50%', transform:'translateX(-50%)',
-        width:280, height:1,
-        background:'linear-gradient(to right, transparent, rgba(201,149,107,0.5), transparent)',
-      }} />
+      <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:280, height:1, background:'linear-gradient(to right, transparent, rgba(201,149,107,0.5), transparent)' }} />
+      <div style={{ position:'absolute', bottom:0, left:'50%', transform:'translateX(-50%)', width:280, height:1, background:'linear-gradient(to right, transparent, rgba(201,149,107,0.5), transparent)' }} />
 
       <motion.div
-        initial={{ opacity:0, scale:0.92 }}
+        initial={{ opacity:0, scale:0.93 }}
         animate={{ opacity:1, scale:1 }}
-        transition={{ duration:0.5 }}
+        transition={{ duration:0.45 }}
         style={{ width:'100%', maxWidth:380, position:'relative', zIndex:10 }}
       >
-
-        {/* ── Success icon ── */}
+        {/* Success icon */}
         <motion.div
           initial={{ scale:0 }}
           animate={{ scale:1 }}
@@ -89,7 +83,6 @@ export default function OrderConfirmation() {
           style={{ display:'flex', justifyContent:'center', marginBottom:24 }}
         >
           <div style={{ position:'relative' }}>
-            {/* Ping ring */}
             <div style={{
               position:'absolute', inset:0, borderRadius:'50%',
               background:'rgba(201,149,107,0.2)',
@@ -98,37 +91,31 @@ export default function OrderConfirmation() {
             <div style={{
               width:72, height:72, borderRadius:'50%',
               background:'rgba(201,149,107,0.15)',
-              border:`2px solid rgba(201,149,107,0.5)`,
+              border:'2px solid rgba(201,149,107,0.5)',
               display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:32,
+              fontSize:30, color:B.cream,
             }}>
               ✓
             </div>
           </div>
         </motion.div>
 
-        {/* ── Title ── */}
+        {/* Title */}
         <motion.div
           initial={{ y:20, opacity:0 }}
           animate={{ y:0, opacity:1 }}
           transition={{ delay:0.35 }}
           style={{ textAlign:'center', marginBottom:20 }}
         >
-          <div style={{
-            fontFamily:'Montserrat,sans-serif', fontWeight:800,
-            fontSize:'1.5rem', color:B.cream, letterSpacing:'0.08em', textTransform:'uppercase',
-          }}>
+          <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'1.5rem', color:B.cream, letterSpacing:'0.08em', textTransform:'uppercase' }}>
             {isRTL ? 'تم الطلب!' : 'Order Placed!'}
           </div>
-          <div style={{
-            fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif',
-            color:B.gold, fontSize:'0.78rem', marginTop:6, letterSpacing: isRTL?0:'0.04em',
-          }}>
+          <div style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', color:B.gold, fontSize:'0.78rem', marginTop:6 }}>
             {isRTL ? 'سنبدأ تحضير طلبك قريباً' : "We'll start preparing your order shortly"}
           </div>
         </motion.div>
 
-        {/* ── Order Card ── */}
+        {/* Order Card */}
         <motion.div
           initial={{ y:20, opacity:0 }}
           animate={{ y:0, opacity:1 }}
@@ -136,17 +123,13 @@ export default function OrderConfirmation() {
           style={{
             background:'rgba(255,255,255,0.08)',
             border:'1px solid rgba(201,149,107,0.2)',
-            borderRadius:20, padding:'20px',
+            borderRadius:20, padding:20,
             backdropFilter:'blur(10px)',
             marginBottom:14,
           }}
         >
           {/* Order # */}
-          <div style={{
-            display:'flex', justifyContent:'space-between', alignItems:'center',
-            paddingBottom:12, marginBottom:12,
-            borderBottom:'1px solid rgba(255,255,255,0.08)',
-          }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:12, marginBottom:12, borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily:'Montserrat,sans-serif', color:'rgba(255,255,255,0.4)', fontSize:'0.62rem', letterSpacing:'0.2em', textTransform:'uppercase' }}>
               {isRTL ? 'رقم الطلب' : 'ORDER NO.'}
             </span>
@@ -158,8 +141,8 @@ export default function OrderConfirmation() {
           {/* Name & Location */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:12 }}>
             {[
-              { label: isRTL?'الاسم':'NAME',     value: order.customer_name },
-              { label: isRTL?'الموقع':'LOCATION', value: locLabel           },
+              { label: isRTL?'الاسم':'NAME',      value: order.customer_name },
+              { label: isRTL?'الموقع':'LOCATION',  value: locLabel            },
             ].map(row => (
               <div key={row.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
                 <span style={{ fontFamily:'Montserrat,sans-serif', color:'rgba(255,255,255,0.35)', fontSize:'0.6rem', letterSpacing:'0.15em', textTransform:'uppercase', flexShrink:0 }}>
@@ -173,59 +156,53 @@ export default function OrderConfirmation() {
           </div>
 
           {/* Items */}
-          <div style={{ borderTop:'1px solid rgba(255,255,255,0.08)', paddingTop:12, marginBottom:12 }}>
-            {(order.items || []).map((item, i) => (
-              <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                <span style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', color:'rgba(255,255,255,0.7)', fontSize:'0.83rem' }}>
-                  {item.quantity}× {item.menu_item?.name || item.name}
-                </span>
-                <span style={{ fontFamily:'Montserrat,sans-serif', color:B.gold, fontWeight:700, fontSize:'0.83rem' }}>
-                  {item.subtotal || (item.price * item.quantity)} AED
-                </span>
-              </div>
-            ))}
-          </div>
+          {orderItems.length > 0 && (
+            <div style={{ borderTop:'1px solid rgba(255,255,255,0.08)', paddingTop:12, marginBottom:12 }}>
+              {orderItems.map((item, i) => (
+                <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <span style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', color:'rgba(255,255,255,0.7)', fontSize:'0.83rem' }}>
+                    {item.quantity}× {item.menu_item?.name || item.name || '—'}
+                  </span>
+                  <span style={{ fontFamily:'Montserrat,sans-serif', color:B.gold, fontWeight:700, fontSize:'0.83rem' }}>
+                    {fmt(item.subtotal || (parseFloat(item.price||0) * parseInt(item.quantity||1)))} AED
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Total */}
-          <div style={{
-            display:'flex', justifyContent:'space-between', alignItems:'center',
-            paddingTop:12, borderTop:'1px solid rgba(201,149,107,0.25)',
-          }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:12, borderTop:'1px solid rgba(201,149,107,0.25)' }}>
             <span style={{ fontFamily:'Montserrat,sans-serif', color:'rgba(255,255,255,0.5)', fontSize:'0.65rem', letterSpacing:'0.15em', textTransform:'uppercase' }}>
               {isRTL ? 'الإجمالي' : 'TOTAL'}
             </span>
             <div>
               <span style={{ fontFamily:'Montserrat,sans-serif', color:B.cream, fontSize:'1.4rem', fontWeight:800 }}>
-                {order.total}
+                {fmt(orderTotal)}
               </span>
-              <span style={{ fontFamily:'Montserrat,sans-serif', color:'rgba(255,255,255,0.35)', fontSize:'0.7rem', fontWeight:400, marginLeft:4 }}>
+              <span style={{ fontFamily:'Montserrat,sans-serif', color:'rgba(255,255,255,0.35)', fontSize:'0.7rem', marginLeft:4 }}>
                 AED
               </span>
             </div>
           </div>
         </motion.div>
 
-        {/* ── Estimated time ── */}
-        <motion.div
-          initial={{ opacity:0 }}
-          animate={{ opacity:1 }}
-          transition={{ delay:0.6 }}
-          style={{ textAlign:'center', marginBottom:20 }}
-        >
+        {/* Estimated time */}
+        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.6 }} style={{ textAlign:'center', marginBottom:20 }}>
           <div style={{
             display:'inline-flex', alignItems:'center', gap:8,
             padding:'8px 18px', borderRadius:40,
             background:'rgba(201,149,107,0.1)',
             border:'1px solid rgba(201,149,107,0.2)',
           }}>
-            <span style={{ fontSize:'0.85rem' }}>⏱</span>
-            <span style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', color:'rgba(255,255,255,0.55)', fontSize:'0.75rem', letterSpacing: isRTL?0:'0.04em' }}>
+            <span>⏱</span>
+            <span style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', color:'rgba(255,255,255,0.55)', fontSize:'0.75rem' }}>
               {isRTL ? 'الوقت المتوقع: ١٠–١٥ دقيقة' : 'Estimated: 10–15 minutes'}
             </span>
           </div>
         </motion.div>
 
-        {/* ── New Order Button ── */}
+        {/* Button */}
         <motion.button
           initial={{ opacity:0 }}
           animate={{ opacity:1 }}
@@ -237,7 +214,7 @@ export default function OrderConfirmation() {
             background:B.brand, color:B.cream,
             fontFamily:'Montserrat,sans-serif', fontWeight:700,
             fontSize:'0.75rem', letterSpacing:'0.18em', textTransform:'uppercase',
-            boxShadow:`0 8px 28px rgba(126,43,63,0.5)`,
+            boxShadow:'0 8px 28px rgba(126,43,63,0.5)',
           }}
         >
           {isRTL ? '+ طلب جديد' : '+ NEW ORDER'}
