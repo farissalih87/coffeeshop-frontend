@@ -1,15 +1,19 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Coffee, LayoutDashboard, UtensilsCrossed, Users, BarChart3, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, UtensilsCrossed, Users, BarChart3, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../../store'
 import toast from 'react-hot-toast'
 
 const NAV_ITEMS = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/menu', label: 'Menu', icon: UtensilsCrossed },
-  { to: '/admin/staff', label: 'Staff', icon: Users },
-  { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/admin',         label: 'DASHBOARD', icon: LayoutDashboard, end: true },
+  { to: '/admin/menu',    label: 'MENU',       icon: UtensilsCrossed             },
+  { to: '/admin/staff',   label: 'STAFF',      icon: Users                       },
+  { to: '/admin/reports', label: 'REPORTS',    icon: BarChart3                   },
 ]
+
+const sidebarStyle = {
+  background: 'linear-gradient(180deg, #1a0a0e 0%, #5a1e2d 100%)',
+}
 
 export default function AdminLayout() {
   const navigate = useNavigate()
@@ -25,14 +29,32 @@ export default function AdminLayout() {
   const Sidebar = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-6 border-b border-coffee-800/50">
+      <div className="p-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-coffee-600/20 border border-coffee-600/30 flex items-center justify-center">
-            <Coffee className="text-coffee-400" size={20} />
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="Arica Lounge"
+            className="w-10 h-10 rounded-full object-cover"
+            style={{ border: '1px solid rgba(201,149,107,0.3)' }}
+          />
           <div>
-            <div className="font-display font-bold text-cream text-sm">Coffee Lounge</div>
-            <div className="text-coffee-600 text-xs">Admin Panel</div>
+            <div style={{
+              fontFamily: 'Montserrat, sans-serif',
+              fontWeight: '800',
+              color: '#fdf6ee',
+              letterSpacing: '0.2em',
+              fontSize: '0.8rem',
+            }}>
+              ARICA
+            </div>
+            <div style={{
+              fontFamily: 'Montserrat, sans-serif',
+              color: '#c9956b',
+              letterSpacing: '0.4em',
+              fontSize: '0.55rem',
+            }}>
+              LOUNGE
+            </div>
           </div>
         </div>
       </div>
@@ -45,29 +67,55 @@ export default function AdminLayout() {
             to={item.to}
             end={item.end}
             onClick={() => setMobileOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all
-               ${isActive
-                 ? 'bg-coffee-600/20 text-coffee-300 border border-coffee-600/30'
-                 : 'text-coffee-500 hover:text-coffee-300 hover:bg-coffee-800/30'
-               }`
-            }
+            className={({ isActive }) => `
+              flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
+              ${isActive
+                ? 'text-cream'
+                : 'text-white/30 hover:text-white/60 hover:bg-white/5'
+              }
+            `}
+            style={({ isActive }) => isActive ? {
+              background: 'rgba(126,43,63,0.5)',
+              border: '1px solid rgba(201,149,107,0.2)',
+            } : {}}
           >
-            <item.icon size={18} />
-            {item.label}
+            <item.icon size={16} />
+            <span style={{
+              fontFamily: 'Montserrat, sans-serif',
+              fontSize: '0.7rem',
+              fontWeight: '600',
+              letterSpacing: '0.15em',
+            }}>
+              {item.label}
+            </span>
           </NavLink>
         ))}
       </nav>
 
       {/* User + Logout */}
-      <div className="p-4 border-t border-coffee-800/50">
-        <div className="text-coffee-500 text-xs mb-3 font-body">{user?.email}</div>
+      <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{
+          fontFamily: 'Montserrat, sans-serif',
+          color: 'rgba(255,255,255,0.25)',
+          fontSize: '0.65rem',
+          marginBottom: '12px',
+          letterSpacing: '0.05em',
+        }}>
+          {user?.email}
+        </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-coffee-600 hover:text-red-400 text-sm font-body transition-colors"
+          className="flex items-center gap-2 transition-colors hover:text-red-400"
+          style={{
+            fontFamily: 'Montserrat, sans-serif',
+            color: 'rgba(255,255,255,0.25)',
+            fontSize: '0.65rem',
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+          }}
         >
-          <LogOut size={16} />
-          Logout
+          <LogOut size={14} />
+          LOGOUT
         </button>
       </div>
     </div>
@@ -76,16 +124,16 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-56 flex-col bg-dark border-r border-coffee-800/30 fixed inset-y-0">
+      <aside className="hidden lg:flex w-56 flex-col fixed inset-y-0" style={sidebarStyle}>
         <Sidebar />
       </aside>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Sidebar */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-dark/60" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-64 bg-dark flex flex-col">
-            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-coffee-500">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className="relative w-64 flex flex-col" style={sidebarStyle}>
+            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-white/40">
               <X size={20} />
             </button>
             <Sidebar />
@@ -94,15 +142,26 @@ export default function AdminLayout() {
       )}
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-30 bg-dark border-b border-coffee-800/30 px-4 py-3 flex items-center gap-3">
+      <div
+        className="lg:hidden fixed top-0 inset-x-0 z-30 px-4 py-3 flex items-center gap-3"
+        style={{ background: '#1a0a0e', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+      >
         <button onClick={() => setMobileOpen(true)}>
-          <Menu className="text-coffee-400" size={22} />
+          <Menu style={{ color: '#c9956b' }} size={22} />
         </button>
-        <span className="font-display font-bold text-cream">Admin Panel</span>
+        <span style={{
+          fontFamily: 'Montserrat, sans-serif',
+          fontWeight: '800',
+          color: '#fdf6ee',
+          letterSpacing: '0.2em',
+          fontSize: '0.8rem',
+        }}>
+          ARICA LOUNGE
+        </span>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-56 pt-14 lg:pt-0 min-h-screen">
+      <main className="flex-1 lg:ml-56 pt-14 lg:pt-0 min-h-screen bg-gray-50">
         <Outlet />
       </main>
     </div>
