@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-cream text-dark font-body;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .rtl {
+    direction: rtl;
+    font-family: 'Noto Naskh Arabic', serif;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-coffee-600 hover:bg-coffee-700 text-white font-body font-semibold
+           px-6 py-3 rounded-2xl transition-all duration-200 
+           shadow-lg shadow-coffee-600/30 hover:shadow-xl hover:shadow-coffee-600/40
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-coffee-50 text-coffee-700 border-2 border-coffee-200
+           font-body font-semibold px-6 py-3 rounded-2xl transition-all duration-200
+           hover:border-coffee-400;
+  }
+
+  .card {
+    @apply bg-white rounded-3xl shadow-sm border border-coffee-100/50;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-xl hover:shadow-coffee-200/40 hover:-translate-y-1 
+           transition-all duration-300 cursor-pointer;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+}
+
+/* Noise texture overlay for luxury feel */
+.noise-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #fdf8f0; }
+::-webkit-scrollbar-thumb { background: #d4841e; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #b96815; }
+
+/* Notification sound visual indicator */
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(212, 132, 30, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(212, 132, 30, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 132, 30, 0); }
+}
+.alarm-ring {
+  animation: ring-pulse 1s ease-out infinite;
+}
+
+/* Arabic font for rtl elements */
+[dir="rtl"] {
+  font-family: 'Noto Naskh Arabic', serif;
+}
+[dir="rtl"] .font-display {
+  font-family: 'Noto Naskh Arabic', serif;
+}
