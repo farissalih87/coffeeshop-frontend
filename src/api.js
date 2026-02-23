@@ -2,20 +2,49 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json', 
+    'Accept': 'application/json' 
+  },
 })
 
 // Attach auth token automatically
 api.interceptors.request.use((config) => {
-  const stored = localStorage.getItem('coffeeshop-auth')
-  if (stored) {
-    const { state } = JSON.parse(stored)
-    if (state?.token) {
-      config.headers.Authorization = `Bearer ${state.token}`
+  try {
+    // Check all possible storage keys
+    const keys = ['coffeeshop-auth', 'auth']
+    let token = null
+
+    for (const key of keys) {
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // Handle both formats
+        token = parsed?.state?.token || parsed?.token || null
+        if (token) break
+      }
     }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  } catch (e) {
+    console.warn('Error reading auth token:', e)
   }
   return config
 })
+
+// Handle 401 - redirect to login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('coffeeshop-auth')
+      window.location.href = '/staff/login'
+    }
+    return Promise.reject(error)
+  }
+)
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
@@ -29,7 +58,6 @@ export const menuApi = {
   getCategories: () => api.get('/menu/categories'),
   getItems: (categoryId) => api.get('/menu/items', { params: { category_id: categoryId } }),
   getAllItems: () => api.get('/menu/items'),
-  // Admin
   createCategory: (data) => api.post('/admin/categories', data),
   updateCategory: (id, data) => api.put(`/admin/categories/${id}`, data),
   deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
@@ -44,7 +72,6 @@ export const orderApi = {
   getAll: (params) => api.get('/staff/orders', { params }),
   getById: (id) => api.get(`/staff/orders/${id}`),
   updateStatus: (id, status) => api.patch(`/staff/orders/${id}/status`, { status }),
-  // Admin
   getStats: () => api.get('/admin/stats'),
   getReport: (params) => api.get('/admin/reports', { params }),
 }
