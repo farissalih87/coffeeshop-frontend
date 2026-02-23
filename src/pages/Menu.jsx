@@ -1,84 +1,131 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Plus, Minus, X, MapPin, ChevronDown } from 'lucide-react'
+import { ShoppingCart, Plus, Minus, X, Check, MapPin } from 'lucide-react'
 import { useLanguageStore, useCartStore } from '../store'
 import { menuApi, orderApi } from '../api'
-import { t } from '../i18n/translations'
 import toast from 'react-hot-toast'
 
-// ─── Item Card ────────────────────────────────────────────────────────────────
+// ── Brand Colors ──────────────────────────────────────────────────────────────
+const B = {
+  dark:   '#1a0a0e',
+  wine:   '#5a1e2d',
+  brand:  '#7e2b3f',
+  gold:   '#c9956b',
+  cream:  '#fdf6ee',
+  blush:  '#fdf2f4',
+}
+
+// ── Item Card ─────────────────────────────────────────────────────────────────
 function ItemCard({ item, lang, onAdd }) {
   const isRTL = lang === 'ar'
   const name  = isRTL && item.name_ar ? item.name_ar : item.name
   const desc  = isRTL && item.description_ar ? item.description_ar : item.description
+  const [flash, setFlash] = useState(false)
+
+  const handleAdd = () => {
+    onAdd(item)
+    setFlash(true)
+    setTimeout(() => setFlash(false), 900)
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col"
-      style={{ border: '1px solid rgba(126,43,63,0.08)' }}
+    <div
+      style={{
+        background: 'white',
+        borderRadius: 16,
+        overflow: 'hidden',
+        border: flash ? `2px solid ${B.brand}` : '1px solid rgba(126,43,63,0.1)',
+        boxShadow: flash ? `0 4px 20px rgba(126,43,63,0.25)` : '0 2px 8px rgba(0,0,0,0.04)',
+        transition: 'border 0.25s, box-shadow 0.25s',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
-      {/* Image / Emoji */}
-      <div className="h-28 flex items-center justify-center text-5xl"
-        style={{ background: 'linear-gradient(135deg, #fdf2f4, #f5e6e8)' }}
-      >
+      {/* Image area */}
+      <div style={{
+        height: 110,
+        background: `linear-gradient(135deg, ${B.blush}, #f5e6e8)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 44, position: 'relative', overflow: 'hidden',
+      }}>
         {item.image
-          ? <img src={item.image} alt={name} className="h-full w-full object-cover" />
+          ? <img src={item.image} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           : (item.category?.icon || '☕')
         }
+        {/* Flash overlay */}
+        <AnimatePresence>
+          {flash && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(126,43,63,0.75)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400 }}
+              >
+                <Check size={36} color={B.cream} strokeWidth={3} />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="p-3 flex flex-col flex-1" dir={isRTL ? 'rtl' : 'ltr'}>
-        <h3 style={{
+      {/* Content */}
+      <div style={{ padding: '10px 12px 12px', flexGrow: 1, display:'flex', flexDirection:'column' }}
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
+        <div style={{
           fontFamily: isRTL ? 'Noto Naskh Arabic, serif' : 'Montserrat, sans-serif',
-          fontWeight: '700',
-          color: '#1a0a0e',
-          fontSize: '0.9rem',
-          lineHeight: 1.2,
+          fontWeight: 700, color: B.dark, fontSize: '0.85rem', lineHeight: 1.2,
         }}>
           {name}
-        </h3>
+        </div>
         {desc && (
-          <p style={{
+          <div style={{
             fontFamily: isRTL ? 'Noto Naskh Arabic, serif' : 'Montserrat, sans-serif',
-            color: '#999',
-            fontSize: '0.72rem',
-            marginTop: '4px',
-            lineHeight: 1.4,
-            flexGrow: 1,
+            color: '#bbb', fontSize: '0.68rem', marginTop: 3, lineHeight: 1.4, flexGrow: 1,
           }}>
             {desc}
-          </p>
+          </div>
         )}
-        <div className="flex items-center justify-between mt-3">
-          <span style={{
-            fontFamily: 'Montserrat, sans-serif',
-            fontWeight: '800',
-            color: '#7e2b3f',
-            fontSize: '1rem',
-          }}>
-            {item.price} <span style={{ fontSize:'0.65rem', fontWeight:'400', color:'#aaa' }}>AED</span>
-          </span>
-          <button
-            onClick={() => onAdd(item)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop: 10 }}>
+          <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight: 800, color: B.brand, fontSize: '0.95rem' }}>
+            {item.price}
+            <span style={{ fontSize: '0.6rem', fontWeight: 400, color: '#ccc', marginLeft: 2 }}>AED</span>
+          </div>
+          <motion.button
+            onClick={handleAdd}
+            whileTap={{ scale: 0.85 }}
+            whileHover={{ scale: 1.1 }}
             style={{
-              background: '#7e2b3f',
-              color: '#fdf6ee',
-              boxShadow: '0 4px 12px rgba(126,43,63,0.35)',
+              width: 34, height: 34, borderRadius: 10,
+              background: flash ? B.wine : B.brand,
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 4px 12px rgba(126,43,63,0.4)`,
+              transition: 'background 0.2s',
             }}
           >
-            <Plus size={18} strokeWidth={2.5} />
-          </button>
+            {flash
+              ? <Check size={16} color={B.cream} strokeWidth={3} />
+              : <Plus size={18} color={B.cream} strokeWidth={2.5} />
+            }
+          </motion.button>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-// ─── Cart Drawer ──────────────────────────────────────────────────────────────
+// ── Cart Drawer ───────────────────────────────────────────────────────────────
 function CartDrawer({ isOpen, onClose, lang, onCheckout }) {
   const { items, updateQty, removeItem, total } = useCartStore()
   const isRTL = lang === 'ar'
@@ -87,72 +134,82 @@ function CartDrawer({ isOpen, onClose, lang, onCheckout }) {
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
             onClick={onClose}
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex: 40 }}
           />
+          {/* Drawer */}
           <motion.div
             initial={{ x: isRTL ? '-100%' : '100%' }}
             animate={{ x: 0 }}
             exit={{ x: isRTL ? '-100%' : '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-y-0 w-80 z-50 flex flex-col shadow-2xl"
-            style={{ [isRTL ? 'left' : 'right']: 0, background: '#fdf6ee' }}
+            transition={{ type:'spring', damping:28, stiffness:300 }}
             dir={isRTL ? 'rtl' : 'ltr'}
+            style={{
+              position:'fixed', top:0, bottom:0,
+              [isRTL ? 'left' : 'right']: 0,
+              width: 300, zIndex: 50,
+              background: B.cream,
+              display:'flex', flexDirection:'column',
+              boxShadow: '-8px 0 40px rgba(0,0,0,0.2)',
+            }}
           >
             {/* Header */}
-            <div className="p-4 flex items-center justify-between"
-              style={{ borderBottom: '1px solid rgba(126,43,63,0.1)', background: '#1a0a0e' }}
-            >
-              <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'700', color:'#fdf6ee', letterSpacing:'0.1em', fontSize:'0.85rem' }}>
-                {isRTL ? 'السلة' : 'YOUR ORDER'}
+            <div style={{
+              background: B.dark, padding: '16px 20px',
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+            }}>
+              <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:700, color:B.cream, letterSpacing:'0.12em', fontSize:'0.8rem' }}>
+                {isRTL ? 'طلبك' : 'YOUR ORDER'}
               </span>
-              <button onClick={onClose} style={{ color:'rgba(255,255,255,0.4)' }}>
+              <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.4)', padding:4 }}>
                 <X size={20} />
               </button>
             </div>
 
             {/* Items */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div style={{ flex:1, overflowY:'auto', padding: 16, display:'flex', flexDirection:'column', gap: 10 }}>
               {items.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-5xl mb-3">🛒</div>
-                  <p style={{ fontFamily:'Montserrat,sans-serif', color:'#aaa', fontSize:'0.85rem' }}>
+                <div style={{ textAlign:'center', paddingTop: 60 }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>
+                  <div style={{ fontFamily:'Montserrat,sans-serif', color:'#bbb', fontSize:'0.85rem' }}>
                     {isRTL ? 'السلة فارغة' : 'Your cart is empty'}
-                  </p>
+                  </div>
                 </div>
               ) : items.map(item => (
-                <div key={item.id} className="bg-white rounded-2xl p-3 flex items-center gap-3"
-                  style={{ border:'1px solid rgba(126,43,63,0.08)' }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', fontWeight:'600', fontSize:'0.85rem', color:'#1a0a0e' }}>
+                <div key={item.id} style={{
+                  background:'white', borderRadius:14, padding:'10px 12px',
+                  border:'1px solid rgba(126,43,63,0.08)',
+                  display:'flex', alignItems:'center', gap:10,
+                }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif', fontWeight:600, fontSize:'0.82rem', color:B.dark, lineHeight:1.2 }}>
                       {isRTL && item.name_ar ? item.name_ar : item.name}
-                    </p>
-                    <p style={{ fontFamily:'Montserrat,sans-serif', color:'#7e2b3f', fontWeight:'700', fontSize:'0.85rem', marginTop:'2px' }}>
+                    </div>
+                    <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:700, color:B.brand, fontSize:'0.82rem', marginTop:3 }}>
                       {(item.price * item.quantity).toFixed(0)} AED
-                    </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => updateQty(item.id, item.quantity - 1)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ background:'rgba(126,43,63,0.1)', color:'#7e2b3f' }}
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'700', fontSize:'0.9rem', minWidth:'20px', textAlign:'center' }}>
+                  {/* Qty controls */}
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <button onClick={() => updateQty(item.id, item.quantity - 1)} style={{
+                      width:26, height:26, borderRadius:8, border:'none', cursor:'pointer',
+                      background:'rgba(126,43,63,0.1)', color:B.brand,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}><Minus size={11} strokeWidth={2.5} /></button>
+                    <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.9rem', minWidth:18, textAlign:'center' }}>
                       {item.quantity}
                     </span>
-                    <button onClick={() => updateQty(item.id, item.quantity + 1)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ background:'#7e2b3f', color:'#fdf6ee' }}
-                    >
-                      <Plus size={12} />
-                    </button>
+                    <button onClick={() => updateQty(item.id, item.quantity + 1)} style={{
+                      width:26, height:26, borderRadius:8, border:'none', cursor:'pointer',
+                      background:B.brand, color:B.cream,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}><Plus size={11} strokeWidth={2.5} /></button>
                   </div>
-                  <button onClick={() => removeItem(item.id)} style={{ color:'#ccc' }}>
-                    <X size={16} />
+                  <button onClick={() => removeItem(item.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#ccc', padding:2 }}>
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -160,26 +217,22 @@ function CartDrawer({ isOpen, onClose, lang, onCheckout }) {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="p-4" style={{ borderTop:'1px solid rgba(126,43,63,0.1)' }}>
-                <div className="flex justify-between items-center mb-4">
-                  <span style={{ fontFamily:'Montserrat,sans-serif', color:'#888', fontSize:'0.75rem', letterSpacing:'0.1em', textTransform:'uppercase' }}>
+              <div style={{ padding:16, borderTop:'1px solid rgba(126,43,63,0.1)' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+                  <span style={{ fontFamily:'Montserrat,sans-serif', color:'#aaa', fontSize:'0.7rem', letterSpacing:'0.12em', textTransform:'uppercase' }}>
                     {isRTL ? 'الإجمالي' : 'TOTAL'}
                   </span>
-                  <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'800', fontSize:'1.3rem', color:'#1a0a0e' }}>
-                    {total.toFixed(0)} AED
+                  <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'1.3rem', color:B.dark }}>
+                    {total.toFixed(0)} <span style={{ fontSize:'0.7rem', fontWeight:400, color:'#aaa' }}>AED</span>
                   </span>
                 </div>
-                <button
-                  onClick={onCheckout}
-                  className="w-full py-4 rounded-2xl transition-all hover:-translate-y-0.5"
-                  style={{
-                    background:'#7e2b3f', color:'#fdf6ee',
-                    fontFamily:'Montserrat,sans-serif', fontWeight:'700',
-                    fontSize:'0.75rem', letterSpacing:'0.2em', textTransform:'uppercase',
-                    boxShadow:'0 8px 24px rgba(126,43,63,0.35)',
-                    cursor:'pointer', border:'none',
-                  }}
-                >
+                <button onClick={onCheckout} style={{
+                  width:'100%', padding:'14px', borderRadius:14, border:'none', cursor:'pointer',
+                  background:B.brand, color:B.cream,
+                  fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.75rem',
+                  letterSpacing:'0.15em', textTransform:'uppercase',
+                  boxShadow:`0 8px 24px rgba(126,43,63,0.4)`,
+                }}>
                   {isRTL ? 'تأكيد الطلب ←' : 'CHECKOUT →'}
                 </button>
               </div>
@@ -191,22 +244,22 @@ function CartDrawer({ isOpen, onClose, lang, onCheckout }) {
   )
 }
 
-// ─── Checkout Modal ───────────────────────────────────────────────────────────
+// ── Checkout Modal ─────────────────────────────────────────────────────────────
 function CheckoutModal({ isOpen, onClose, lang, onSubmit, loading }) {
-  const [name, setName]         = useState('')
+  const [name,     setName]     = useState('')
   const [location, setLocation] = useState('')
-  const [notes, setNotes]       = useState('')
+  const [notes,    setNotes]    = useState('')
   const isRTL = lang === 'ar'
 
-  const LOCATIONS = [
-    { value: 'salon',     label: isRTL ? "صالون الرجال ✂️" : "Men's Salon ✂️"          },
-    { value: 'reception', label: isRTL ? "استقبال السيارات 🚗" : "Car Care Reception 🚗" },
+  const LOCS = [
+    { value:'salon',     label: isRTL ? "صالون الرجال ✂️"      : "Men's Salon ✂️"          },
+    { value:'reception', label: isRTL ? "استقبال السيارات 🚗"   : "Car Care Reception 🚗"   },
   ]
 
   const handleSubmit = () => {
     if (!name.trim()) return toast.error(isRTL ? 'أدخل اسمك' : 'Please enter your name')
-    if (!location)    return toast.error(isRTL ? 'اختر الموقع' : 'Please select your location')
-    onSubmit({ name, location, notes })
+    if (!location)    return toast.error(isRTL ? 'اختر موقعك' : 'Please select your location')
+    onSubmit({ name: name.trim(), location, notes })
   }
 
   return (
@@ -214,62 +267,67 @@ function CheckoutModal({ isOpen, onClose, lang, onSubmit, loading }) {
       {isOpen && (
         <>
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
             onClick={onClose}
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:50 }}
           />
           <motion.div
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 inset-x-0 z-50 rounded-t-3xl p-6"
-            style={{ background: '#fdf6ee', maxHeight: '85vh', overflowY: 'auto' }}
+            initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
+            transition={{ type:'spring', damping:28, stiffness:300 }}
             dir={isRTL ? 'rtl' : 'ltr'}
+            style={{
+              position:'fixed', bottom:0, left:0, right:0, zIndex:60,
+              background:B.cream, borderRadius:'24px 24px 0 0',
+              padding:'24px 20px 36px',
+              maxHeight:'88vh', overflowY:'auto',
+            }}
           >
-            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+            {/* Handle */}
+            <div style={{ width:40, height:4, borderRadius:2, background:'#ddd', margin:'0 auto 20px' }} />
 
-            <h2 style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'800', fontSize:'1.2rem', color:'#1a0a0e', letterSpacing:'0.05em', marginBottom:'20px' }}>
+            <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'1.1rem', color:B.dark, letterSpacing:'0.08em', marginBottom:20 }}>
               {isRTL ? 'تفاصيل الطلب' : 'ORDER DETAILS'}
-            </h2>
+            </div>
 
             {/* Name */}
-            <div className="mb-4">
-              <label style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.65rem', color:'#888', letterSpacing:'0.2em', textTransform:'uppercase', display:'block', marginBottom:'8px' }}>
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.62rem', color:'#999', letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:8 }}>
                 {isRTL ? 'الاسم' : 'YOUR NAME'}
-              </label>
+              </div>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder={isRTL ? 'اكتب اسمك...' : 'Enter your name...'}
-                className="w-full rounded-xl px-4 py-3 outline-none transition-all"
                 style={{
+                  width:'100%', padding:'12px 14px', borderRadius:12,
+                  border:`1.5px solid rgba(126,43,63,0.2)`,
                   fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif',
-                  background:'white', border:'1.5px solid rgba(126,43,63,0.15)',
-                  fontSize:'0.95rem', color:'#1a0a0e',
+                  fontSize:'0.95rem', color:B.dark, background:'white', outline:'none',
+                  boxSizing:'border-box',
                 }}
-                onFocus={e => e.target.style.borderColor = '#7e2b3f'}
-                onBlur={e => e.target.style.borderColor = 'rgba(126,43,63,0.15)'}
+                onFocus={e => e.target.style.borderColor = B.brand}
+                onBlur={e => e.target.style.borderColor = 'rgba(126,43,63,0.2)'}
               />
             </div>
 
             {/* Location */}
-            <div className="mb-4">
-              <label style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.65rem', color:'#888', letterSpacing:'0.2em', textTransform:'uppercase', display:'block', marginBottom:'8px' }}>
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.62rem', color:'#999', letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:8 }}>
                 {isRTL ? 'موقعك' : 'YOUR LOCATION'}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {LOCATIONS.map(loc => (
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                {LOCS.map(loc => (
                   <button
                     key={loc.value}
                     onClick={() => setLocation(loc.value)}
-                    className="py-3 px-3 rounded-xl transition-all duration-200 text-center"
                     style={{
+                      padding:'14px 8px', borderRadius:12, cursor:'pointer',
                       fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif',
-                      fontSize: '0.78rem',
-                      fontWeight: '600',
-                      border: location === loc.value ? '2px solid #7e2b3f' : '1.5px solid rgba(126,43,63,0.15)',
-                      background: location === loc.value ? '#7e2b3f' : 'white',
-                      color: location === loc.value ? '#fdf6ee' : '#555',
-                      cursor: 'pointer',
+                      fontSize:'0.78rem', fontWeight:600, textAlign:'center',
+                      border: location===loc.value ? `2px solid ${B.brand}` : '1.5px solid rgba(126,43,63,0.15)',
+                      background: location===loc.value ? B.brand : 'white',
+                      color: location===loc.value ? B.cream : '#666',
+                      transition:'all 0.2s',
                     }}
                   >
                     {loc.label}
@@ -279,40 +337,42 @@ function CheckoutModal({ isOpen, onClose, lang, onSubmit, loading }) {
             </div>
 
             {/* Notes */}
-            <div className="mb-6">
-              <label style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.65rem', color:'#888', letterSpacing:'0.2em', textTransform:'uppercase', display:'block', marginBottom:'8px' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.62rem', color:'#999', letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:8 }}>
                 {isRTL ? 'ملاحظات (اختياري)' : 'NOTES (OPTIONAL)'}
-              </label>
+              </div>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder={isRTL ? 'مثال: بدون سكر...' : 'e.g. No sugar, extra hot...'}
                 rows={2}
-                className="w-full rounded-xl px-4 py-3 outline-none resize-none transition-all"
                 style={{
+                  width:'100%', padding:'12px 14px', borderRadius:12,
+                  border:'1.5px solid rgba(126,43,63,0.2)',
                   fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif',
-                  background:'white', border:'1.5px solid rgba(126,43,63,0.15)',
-                  fontSize:'0.9rem', color:'#1a0a0e',
+                  fontSize:'0.9rem', color:B.dark, background:'white', outline:'none',
+                  resize:'none', boxSizing:'border-box',
                 }}
-                onFocus={e => e.target.style.borderColor = '#7e2b3f'}
-                onBlur={e => e.target.style.borderColor = 'rgba(126,43,63,0.15)'}
+                onFocus={e => e.target.style.borderColor = B.brand}
+                onBlur={e => e.target.style.borderColor = 'rgba(126,43,63,0.2)'}
               />
             </div>
 
+            {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-60 transition-all hover:-translate-y-0.5"
               style={{
-                background:'#7e2b3f', color:'#fdf6ee',
-                fontFamily:'Montserrat,sans-serif', fontWeight:'700',
-                fontSize:'0.75rem', letterSpacing:'0.2em', textTransform:'uppercase',
-                border:'none', cursor:'pointer',
-                boxShadow:'0 8px 24px rgba(126,43,63,0.35)',
+                width:'100%', padding:'16px', borderRadius:14, border:'none', cursor:'pointer',
+                background: loading ? '#ccc' : B.brand, color:B.cream,
+                fontFamily:'Montserrat,sans-serif', fontWeight:700,
+                fontSize:'0.78rem', letterSpacing:'0.18em', textTransform:'uppercase',
+                boxShadow:`0 8px 24px rgba(126,43,63,0.35)`,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
               }}
             >
               {loading
-                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ? <div style={{ width:20, height:20, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', animation:'spin 0.8s linear infinite' }} />
                 : (isRTL ? 'تأكيد الطلب ✓' : 'PLACE ORDER ✓')
               }
             </button>
@@ -323,20 +383,20 @@ function CheckoutModal({ isOpen, onClose, lang, onSubmit, loading }) {
   )
 }
 
-// ─── Main Menu Page ───────────────────────────────────────────────────────────
+// ── Main Menu ─────────────────────────────────────────────────────────────────
 export default function Menu() {
   const navigate = useNavigate()
   const { lang } = useLanguageStore()
   const { items: cartItems, addItem, total, count } = useCartStore()
   const isRTL = lang === 'ar'
 
-  const [categories,   setCategories]   = useState([])
-  const [menuItems,    setMenuItems]     = useState([])
-  const [activeCat,    setActiveCat]     = useState(null)
-  const [cartOpen,     setCartOpen]      = useState(false)
-  const [checkoutOpen, setCheckoutOpen]  = useState(false)
-  const [loading,      setLoading]       = useState(true)
-  const [submitting,   setSubmitting]    = useState(false)
+  const [categories,   setCategories]  = useState([])
+  const [menuItems,    setMenuItems]    = useState([])
+  const [activeCat,    setActiveCat]    = useState(null)
+  const [cartOpen,     setCartOpen]     = useState(false)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [loadingMenu,  setLoadingMenu]  = useState(true)
+  const [submitting,   setSubmitting]   = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -345,32 +405,38 @@ export default function Menu() {
           menuApi.getCategories(),
           menuApi.getAllItems(),
         ])
-        const cats = catRes.data.categories || []
+        const cats  = catRes.data?.categories  || []
+        const items = itemRes.data?.items || []
         setCategories(cats)
-        setMenuItems(itemRes.data.items || [])
+        setMenuItems(items)
         if (cats.length > 0) setActiveCat(cats[0].id)
       } catch (e) {
-        console.error(e)
+        console.error('Menu load error:', e)
+        toast.error('Failed to load menu')
       } finally {
-        setLoading(false)
+        setLoadingMenu(false)
       }
     }
     load()
   }, [])
 
-  const filtered = activeCat
-    ? menuItems.filter(i => i.category_id === activeCat && i.available)
-    : menuItems.filter(i => i.available)
+  const filtered = menuItems.filter(i =>
+    i.available !== false &&
+    (activeCat === null || i.category_id === activeCat)
+  )
 
   const handleAdd = (item) => {
     addItem(item)
-    toast.success(
-      isRTL ? `تمت الإضافة: ${item.name_ar || item.name}` : `Added: ${item.name}`,
-      { icon: '✓', style: { fontFamily: 'Montserrat, sans-serif', fontSize: '0.85rem' } }
-    )
+  }
+
+  const handleCheckout = () => {
+    setCartOpen(false)
+    // small delay so cart drawer closes first
+    setTimeout(() => setCheckoutOpen(true), 200)
   }
 
   const handlePlaceOrder = async ({ name, location, notes }) => {
+    if (cartItems.length === 0) return toast.error('Cart is empty')
     setSubmitting(true)
     try {
       const payload = {
@@ -382,9 +448,10 @@ export default function Menu() {
       }
       const res = await orderApi.place(payload)
       setCheckoutOpen(false)
-      setCartOpen(false)
-      navigate('/order-confirmation', { state: { order: res.data.order } })
+      const order = res.data?.order || res.data
+      navigate('/order-confirmation', { state: { order } })
     } catch (e) {
+      console.error('Order error:', e)
       toast.error(isRTL ? 'حدث خطأ، حاول مجدداً' : 'Failed to place order, please try again')
     } finally {
       setSubmitting(false)
@@ -392,68 +459,81 @@ export default function Menu() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#fdf6ee' }} dir={isRTL ? 'rtl' : 'ltr'}>
+    <div style={{ minHeight:'100vh', background:B.cream }} dir={isRTL ? 'rtl' : 'ltr'}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
-      {/* Header */}
-      <header style={{ background: '#1a0a0e', padding: '16px' }}>
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.jpg" alt="Arica Lounge" className="w-9 h-9 rounded-full object-cover"
-              style={{ border:'1px solid rgba(201,149,107,0.4)' }} />
+      {/* ── Header ── */}
+      <div style={{ background:B.dark, padding:'14px 16px', position:'sticky', top:0, zIndex:30 }}>
+        <div style={{ maxWidth:680, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <img src="/logo.jpg" alt="Arica Lounge" style={{
+              width:36, height:36, borderRadius:'50%', objectFit:'cover',
+              border:'1.5px solid rgba(201,149,107,0.4)',
+            }} />
             <div>
-              <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'800', color:'#fdf6ee', letterSpacing:'0.15em', fontSize:'0.85rem' }}>ARICA</div>
-              <div style={{ fontFamily:'Montserrat,sans-serif', color:'#c9956b', letterSpacing:'0.4em', fontSize:'0.55rem' }}>LOUNGE</div>
+              <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, color:B.cream, letterSpacing:'0.15em', fontSize:'0.8rem', lineHeight:1 }}>ARICA</div>
+              <div style={{ fontFamily:'Montserrat,sans-serif', color:B.gold, letterSpacing:'0.4em', fontSize:'0.5rem', marginTop:2 }}>LOUNGE</div>
             </div>
           </div>
-          {/* Cart button */}
-          <button
+
+          {/* Cart Button */}
+          <motion.button
             onClick={() => setCartOpen(true)}
-            className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:-translate-y-0.5"
-            style={{ background:'#7e2b3f', border:'1px solid rgba(201,149,107,0.2)', boxShadow:'0 4px 16px rgba(126,43,63,0.4)' }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              display:'flex', alignItems:'center', gap:8,
+              padding:'9px 16px', borderRadius:12, border:'none', cursor:'pointer',
+              background:B.brand, boxShadow:`0 4px 16px rgba(126,43,63,0.5)`,
+              position:'relative',
+            }}
           >
-            <ShoppingCart size={18} style={{ color:'#fdf6ee' }} />
-            <span style={{ fontFamily:'Montserrat,sans-serif', color:'#fdf6ee', fontWeight:'700', fontSize:'0.8rem' }}>
+            <ShoppingCart size={17} color={B.cream} />
+            <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:700, color:B.cream, fontSize:'0.78rem', letterSpacing:'0.05em' }}>
               {isRTL ? 'السلة' : 'Cart'}
             </span>
             {count > 0 && (
-              <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center"
-                style={{ background:'#c9956b' }}
+              <motion.div
+                key={count}
+                initial={{ scale:1.4 }} animate={{ scale:1 }}
+                style={{
+                  position:'absolute', top:-8, right:-8,
+                  width:20, height:20, borderRadius:'50%',
+                  background:B.gold, display:'flex', alignItems:'center', justifyContent:'center',
+                }}
               >
-                <span style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.65rem', fontWeight:'800', color:'#1a0a0e' }}>
+                <span style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.6rem', fontWeight:800, color:B.dark }}>
                   {count}
                 </span>
-              </div>
+              </motion.div>
             )}
-          </button>
+          </motion.button>
         </div>
-      </header>
+      </div>
 
-      {/* Category Filter */}
-      <div style={{ background:'#1a0a0e', paddingBottom:'16px' }}>
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {/* ── Category Tabs ── */}
+      <div style={{ background:B.dark, paddingBottom:14 }}>
+        <div style={{ maxWidth:680, margin:'0 auto', padding:'0 16px' }}>
+          <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:2 }}>
             {categories.map(cat => {
-              const isActive = activeCat === cat.id
-              const name = isRTL && cat.name_ar ? cat.name_ar : cat.name
+              const active = activeCat === cat.id
+              const catName = isRTL && cat.name_ar ? cat.name_ar : cat.name
               return (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCat(cat.id)}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all duration-200"
                   style={{
-                    background: isActive ? '#7e2b3f' : 'rgba(255,255,255,0.07)',
-                    border: isActive ? '1px solid rgba(201,149,107,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                    flexShrink:0, display:'flex', alignItems:'center', gap:6,
+                    padding:'8px 14px', borderRadius:10, border:'none', cursor:'pointer',
+                    background: active ? B.brand : 'rgba(255,255,255,0.07)',
+                    color: active ? B.cream : 'rgba(255,255,255,0.4)',
                     fontFamily: isRTL?'Noto Naskh Arabic,serif':'Montserrat,sans-serif',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: isActive ? '#fdf6ee' : 'rgba(255,255,255,0.4)',
-                    cursor: 'pointer',
-                    letterSpacing: isRTL ? '0' : '0.05em',
-                    whiteSpace: 'nowrap',
+                    fontSize:'0.72rem', fontWeight:600, whiteSpace:'nowrap',
+                    transition:'all 0.2s',
+                    outline: active ? `1px solid rgba(201,149,107,0.3)` : 'none',
                   }}
                 >
                   <span>{cat.icon}</span>
-                  <span>{name}</span>
+                  <span>{catName}</span>
                 </button>
               )
             })}
@@ -461,70 +541,71 @@ export default function Menu() {
         </div>
       </div>
 
-      {/* Items Grid */}
-      <main className="max-w-2xl mx-auto px-4 py-5 pb-28">
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 rounded-full border-4 animate-spin"
-              style={{ borderColor:'rgba(126,43,63,0.2)', borderTopColor:'#7e2b3f' }} />
+      {/* ── Items Grid ── */}
+      <div style={{ maxWidth:680, margin:'0 auto', padding:'16px 16px 120px' }}>
+        {loadingMenu ? (
+          <div style={{ display:'flex', justifyContent:'center', paddingTop:80 }}>
+            <div style={{ width:32, height:32, borderRadius:'50%', border:`4px solid rgba(126,43,63,0.15)`, borderTopColor:B.brand, animation:'spin 0.8s linear infinite' }} />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-3">☕</div>
-            <p style={{ fontFamily:'Montserrat,sans-serif', color:'#aaa' }}>
+          <div style={{ textAlign:'center', paddingTop:80 }}>
+            <div style={{ fontSize:48, marginBottom:12 }}>☕</div>
+            <div style={{ fontFamily:'Montserrat,sans-serif', color:'#bbb', fontSize:'0.9rem' }}>
               {isRTL ? 'لا توجد عناصر' : 'No items available'}
-            </p>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:12 }}>
             {filtered.map(item => (
               <ItemCard key={item.id} item={item} lang={lang} onAdd={handleAdd} />
             ))}
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Floating Cart Button (mobile) */}
-      {count > 0 && (
-        <motion.div
-          initial={{ y: 80 }} animate={{ y: 0 }}
-          className="fixed bottom-6 inset-x-4 z-30"
-        >
-          <button
-            onClick={() => setCartOpen(true)}
-            className="w-full py-4 rounded-2xl flex items-center justify-between px-5 transition-all hover:-translate-y-0.5"
-            style={{
-              background:'#7e2b3f',
-              boxShadow:'0 8px 32px rgba(126,43,63,0.5)',
-              border:'1px solid rgba(201,149,107,0.2)',
-            }}
+      {/* ── Floating Cart Bar (when items in cart) ── */}
+      <AnimatePresence>
+        {count > 0 && (
+          <motion.div
+            initial={{ y:80 }} animate={{ y:0 }} exit={{ y:80 }}
+            style={{ position:'fixed', bottom:20, left:16, right:16, zIndex:30 }}
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ background:'rgba(255,255,255,0.15)' }}
+            <button
+              onClick={() => setCartOpen(true)}
+              style={{
+                width:'100%', padding:'14px 20px', borderRadius:16, border:'none', cursor:'pointer',
+                background:B.brand, display:'flex', alignItems:'center', justifyContent:'space-between',
+                boxShadow:`0 8px 32px rgba(126,43,63,0.55)`,
+              }}
             >
-              <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'800', fontSize:'0.8rem', color:'#fdf6ee' }}>
+              <div style={{
+                width:28, height:28, borderRadius:8,
+                background:'rgba(255,255,255,0.15)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.8rem', color:B.cream,
+              }}>
                 {count}
+              </div>
+              <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.78rem', color:B.cream, letterSpacing:'0.12em' }}>
+                {isRTL ? 'عرض السلة' : 'VIEW ORDER'}
               </span>
-            </div>
-            <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'700', fontSize:'0.8rem', color:'#fdf6ee', letterSpacing:'0.15em' }}>
-              {isRTL ? 'عرض السلة' : 'VIEW ORDER'}
-            </span>
-            <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:'800', color:'#c9956b', fontSize:'0.9rem' }}>
-              {total.toFixed(0)} AED
-            </span>
-          </button>
-        </motion.div>
-      )}
+              <span style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, color:B.gold, fontSize:'0.95rem' }}>
+                {total.toFixed(0)} AED
+              </span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Cart Drawer */}
+      {/* ── Cart Drawer ── */}
       <CartDrawer
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
         lang={lang}
-        onCheckout={() => { setCartOpen(false); setCheckoutOpen(true) }}
+        onCheckout={handleCheckout}
       />
 
-      {/* Checkout Modal */}
+      {/* ── Checkout Modal ── */}
       <CheckoutModal
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
