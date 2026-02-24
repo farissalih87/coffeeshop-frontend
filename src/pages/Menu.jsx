@@ -9,6 +9,17 @@ import toast from 'react-hot-toast'
 const B = { dark:'#1a0a0e', wine:'#5a1e2d', brand:'#7e2b3f', gold:'#c9956b', cream:'#fdf6ee', blush:'#fdf2f4' }
 const fmt = (val) => { const n = parseFloat(val); return isNaN(n) ? '0' : n.toFixed(0) }
 
+// ─── IMAGE URL HELPER ──────────────────────────────────────────────────────────
+// Laravel returns either a full URL or a relative path like /storage/menu/...
+// Always resolve against the API origin, never the frontend origin.
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'https://coffeeshop-api-1.onrender.com'
+const getImageUrl = (path) => {
+  if (!path) return null
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${API_BASE}/${path.replace(/^\//, '')}`
+}
+
+
 // ── Item Card ─────────────────────────────────────────────────────────────────
 function ItemCard({ item, lang, onAdd }) {
   const isRTL = lang === 'ar'
@@ -37,7 +48,7 @@ function ItemCard({ item, lang, onAdd }) {
         position:'relative', overflow:'hidden',
       }}>
         {item.image
-          ? <img src={item.image} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          ? <img src={getImageUrl(item.image)} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           : (
             <div style={{ textAlign:'center' }}>
               <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.6rem', color:'rgba(126,43,63,0.25)', letterSpacing:'0.2em', textTransform:'uppercase' }}>
