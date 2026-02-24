@@ -409,13 +409,48 @@ export default function Menu() {
       {/* Header */}
       <div style={{ background:B.dark, padding:'14px 16px', position:'sticky', top:0, zIndex:30 }}>
         <div style={{ maxWidth:680, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      {/*    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <img src="/logo.jpg" alt="Arica Lounge" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', border:'1.5px solid rgba(201,149,107,0.4)' }} />
             <div>
               <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, color:B.cream, letterSpacing:'0.15em', fontSize:'0.78rem' }}>ARICA</div>
               <div style={{ fontFamily:'Montserrat,sans-serif', color:'#c9956b', letterSpacing:'0.45em', fontSize:'0.48rem', marginTop:1 }}>LOUNGE</div>
             </div>
-          </div>
+          </div> */}
+
+<div style={{ display:'flex', alignItems:'center', gap:16 }}>
+  {/* Back to language select */}
+  
+  <a  href="/"
+    style={{
+      fontFamily:'Montserrat,sans-serif',
+      color:'rgba(255,255,255,0.3)',
+      fontSize:'0.6rem',
+      letterSpacing:'0.25em',
+      textTransform:'uppercase',
+      textDecoration:'none',
+      display:'flex',
+      alignItems:'center',
+      gap:6,
+      transition:'color 0.2s',
+    }}
+    onMouseEnter={e => e.currentTarget.style.color='rgba(201,149,107,0.8)'}
+    onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.3)'}
+  >
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+    Back
+  </a>
+
+  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+    <img src="/logo.jpg" alt="Arica Lounge" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', border:'1.5px solid rgba(201,149,107,0.4)' }} />
+    <div>
+      <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, color:'#fdf6ee', letterSpacing:'0.15em', fontSize:'0.78rem' }}>ARICA</div>
+      <div style={{ fontFamily:'Montserrat,sans-serif', color:'#c9956b', letterSpacing:'0.45em', fontSize:'0.48rem', marginTop:1 }}>LOUNGE</div>
+    </div>
+  </div>
+</div>
+          
           <motion.button
             onClick={() => setCartOpen(true)}
             whileTap={{ scale:0.93 }}
