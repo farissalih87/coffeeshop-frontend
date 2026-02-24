@@ -151,7 +151,7 @@ function ItemModal({ item, categories, onClose, onSaved }) {
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:50 }} />
       <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }}
-        style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'calc(100% - 32px)', maxWidth:520, zIndex:60, background:'white', borderRadius:24, padding:28, maxHeight:'90vh', overflowY:'auto', boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
+        style={{ position:'fixed', top:'05%', left:'25%', transform:'translate(-50%,-50%)', width:'calc(100% - 32px)', maxWidth:520, zIndex:60, background:'white', borderRadius:24, padding:28, maxHeight:'90vh', overflowY:'auto', boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
       >
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
           <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.9rem', color:B.dark, letterSpacing:'0.1em', textTransform:'uppercase' }}>{isEdit ? 'Edit Item' : 'New Item'}</div>
@@ -235,7 +235,7 @@ function DeleteConfirm({ item, onClose, onDeleted }) {
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:50 }} />
       <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }}
-        style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:320, zIndex:60, background:'white', borderRadius:20, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
+        style={{ position:'fixed', top:'05%', left:'25%', transform:'translate(-50%,-50%)', width:320, zIndex:60, background:'white', borderRadius:20, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
       >
         <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.88rem', color:B.dark, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Delete Item</div>
         <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.82rem', color:'#666', marginBottom:20, lineHeight:1.5 }}>
@@ -286,7 +286,7 @@ function CategoryModal({ category, onClose, onSaved }) {
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:50 }} />
       <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }}
-        style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'calc(100% - 32px)', maxWidth:420, zIndex:60, background:'white', borderRadius:24, padding:28, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
+        style={{ position:'fixed', top:'05%', left:'25%', transform:'translate(-50%,-50%)', width:'calc(100% - 32px)', maxWidth:420, zIndex:60, background:'white', borderRadius:24, padding:28, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
       >
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
           <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.9rem', color:B.dark, letterSpacing:'0.1em', textTransform:'uppercase' }}>
@@ -337,7 +337,7 @@ function DeleteCategoryConfirm({ category, itemCount, onClose, onDeleted }) {
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:50 }} />
       <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }}
-        style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:340, zIndex:60, background:'white', borderRadius:20, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
+        style={{ position:'fixed', top:'05%', left:'25%', transform:'translate(-50%,-50%)', width:340, zIndex:60, background:'white', borderRadius:20, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
       >
         <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.88rem', color:B.dark, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Delete Category</div>
         <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.82rem', color:'#666', marginBottom:20, lineHeight:1.6 }}>
