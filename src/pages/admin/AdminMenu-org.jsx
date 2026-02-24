@@ -6,16 +6,6 @@ import toast from 'react-hot-toast'
 
 const B = { dark:'#1a0a0e', brand:'#7e2b3f', gold:'#c9956b', cream:'#fdf6ee', blush:'#fdf2f4' }
 
-// ─── IMAGE URL HELPER ──────────────────────────────────────────────────────────
-// Laravel returns either a full URL or a relative path like /storage/menu/...
-// Always resolve against the API origin, never the frontend origin.
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'https://coffeeshop-api-1.onrender.com'
-const getImageUrl = (path) => {
-  if (!path) return null
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${API_BASE}/${path.replace(/^\//, '')}`
-}
-
 // ─── ALLOWED IMAGE TYPES ───────────────────────────────────────────────────────
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
 const ALLOWED_LABEL = 'JPEG or PNG'
@@ -96,7 +86,7 @@ function ItemModal({ item, categories, onClose, onSaved }) {
     available:      item?.available      ?? true,
   })
   const [imageFile,    setImageFile]    = useState(null)
-  const [imagePreview, setImagePreview] = useState(getImageUrl(item?.image) || null)
+  const [imagePreview, setImagePreview] = useState(item?.image || null)
   const [saving,       setSaving]       = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -522,7 +512,7 @@ export default function AdminMenu() {
                 <div key={item.id} style={{ background:'white', borderRadius:16, overflow:'hidden', border:'1px solid rgba(126,43,63,0.08)', boxShadow:'0 2px 8px rgba(0,0,0,0.04)' }}>
                   <div style={{ height:150, background:B.blush, position:'relative', overflow:'hidden' }}>
                     {item.image ? (
-                      <img src={getImageUrl(item.image)} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} />
+                      <img src={item.image} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} />
                     ) : (
                       <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6 }}>
                         <Image size={22} color='rgba(126,43,63,0.18)' />
