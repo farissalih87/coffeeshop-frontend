@@ -99,10 +99,7 @@ function ItemModal({ item, categories, onClose, onSaved }) {
     try {
       const data = new FormData()
 
-      // FIX 1: Laravel method spoofing — POST route but treated as PUT on edit
-      if (isEdit) data.append('_method', 'PUT')
-
-      // FIX 2: append each field explicitly (avoid iterating object which may miss types)
+      // append each field explicitly (avoid iterating object which may miss types)
       data.append('name',           form.name.trim())
       data.append('name_ar',        form.name_ar.trim())
       data.append('description',    form.description.trim())
