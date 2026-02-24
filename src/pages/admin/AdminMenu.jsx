@@ -1,295 +1,270 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, X, Save, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Pencil, Trash2, X, Image } from 'lucide-react'
 import { menuApi } from '../../api'
 import toast from 'react-hot-toast'
 
-const INIT_CATEGORY = { name: '', name_ar: '', icon: '☕' }
-const INIT_ITEM = { name: '', name_ar: '', description: '', description_ar: '', price: '', category_id: '', available: true }
+const B = { dark:'#1a0a0e', brand:'#7e2b3f', gold:'#c9956b', cream:'#fdf6ee', blush:'#fdf2f4' }
 
-const EMOJIS = ['☕','🧊','🍵','🥐','🍊','🥤','🍰','🧇','🥗','🍫','🧃','🍹']
-
-// Mock data
-let mockCats = [
-  { id:1, name:'Hot Coffee', name_ar:'قهوة ساخنة', icon:'☕' },
-  { id:2, name:'Cold Coffee', name_ar:'قهوة باردة', icon:'🧊' },
-  { id:3, name:'Tea', name_ar:'شاي', icon:'🍵' },
-  { id:4, name:'Pastries', name_ar:'معجنات', icon:'🥐' },
-]
-let mockItems = [
-  { id:1, category_id:1, name:'Espresso', name_ar:'إسبريسو', price:12, available:true },
-  { id:2, category_id:1, name:'Cappuccino', name_ar:'كابتشينو', price:18, available:true },
-  { id:3, category_id:2, name:'Iced Latte', name_ar:'لاتيه مثلج', price:22, available:true },
-  { id:4, category_id:3, name:'Karak Tea', name_ar:'كرك', price:10, available:true },
-]
-
-let nextCatId = 10; let nextItemId = 20
-
-function Modal({ title, onClose, children }) {
+function ImageUpload({ preview, onChange }) {
+  const inputRef = useRef()
+  const [drag, setDrag] = useState(false)
+  const handleFile = (file) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) return toast.error('Please select an image file')
+    onChange(file, URL.createObjectURL(file))
+  }
   return (
-    <div className="fixed inset-0 bg-dark/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-display font-bold text-dark text-lg">{title}</h3>
-          <button onClick={onClose} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-            <X size={14} />
-          </button>
-        </div>
-        {children}
+    <div>
+      <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.6rem', color:'#aaa', letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:8 }}>Item Image</div>
+      <div
+        onClick={() => inputRef.current.click()}
+        onDragOver={e => { e.preventDefault(); setDrag(true) }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]) }}
+        style={{ width:'100%', height:180, borderRadius:14, overflow:'hidden', border:`2px dashed ${drag ? B.brand : 'rgba(126,43,63,0.2)'}`, background: drag ? 'rgba(126,43,63,0.05)' : B.blush, cursor:'pointer', position:'relative', transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center', boxSizing:'border-box' }}
+      >
+        {preview ? (
+          <>
+            <img src={preview} alt="Preview" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} />
+            <div style={{ position:'absolute', inset:0, background:'rgba(26,10,14,0.6)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity=1} onMouseLeave={e => e.currentTarget.style.opacity=0}>
+              <span style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.65rem', color:B.cream, letterSpacing:'0.1em' }}>Change Image</span>
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign:'center', padding:16 }}>
+            <Image size={28} color='rgba(126,43,63,0.2)' style={{ margin:'0 auto 10px', display:'block' }} />
+            <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.7rem', color:'rgba(126,43,63,0.3)', letterSpacing:'0.06em' }}>Click or drag image here</div>
+            <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.58rem', color:'rgba(126,43,63,0.2)', marginTop:4 }}>Any size or ratio — fills automatically</div>
+          </div>
+        )}
       </div>
+      {preview && (
+        <button type="button" onClick={e => { e.stopPropagation(); onChange(null, null) }} style={{ marginTop:6, fontFamily:'Montserrat,sans-serif', fontSize:'0.6rem', color:'rgba(220,38,38,0.45)', letterSpacing:'0.1em', textTransform:'uppercase', background:'none', border:'none', cursor:'pointer', padding:0 }}>
+          Remove image
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleFile(e.target.files[0])} />
     </div>
   )
 }
 
-function Input({ label, ...props }) {
+function ItemModal({ item, categories, onClose, onSaved }) {
+  const isEdit = !!item?.id
+  const [form, setForm] = useState({ name: item?.name||'', name_ar: item?.name_ar||'', description: item?.description||'', description_ar: item?.description_ar||'', price: item?.price||'', category_id: item?.category_id||(categories[0]?.id||''), available: item?.available ?? true })
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(item?.image||null)
+  const [saving, setSaving] = useState(false)
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return toast.error('Name is required')
+    if (!form.price)       return toast.error('Price is required')
+    setSaving(true)
+    try {
+      const data = new FormData()
+      Object.entries(form).forEach(([k, v]) => data.append(k, v))
+      if (imageFile) data.append('image', imageFile)
+      if (!imagePreview && !imageFile && item?.image) data.append('remove_image', '1')
+      if (isEdit) { await menuApi.updateItem(item.id, data); toast.success('Item updated') }
+      else        { await menuApi.createItem(data);          toast.success('Item created') }
+      onSaved()
+    } catch (e) { console.error(e); toast.error('Failed to save') }
+    finally { setSaving(false) }
+  }
+
+  const inputStyle = { width:'100%', padding:'12px 14px', borderRadius:12, border:'1.5px solid rgba(126,43,63,0.15)', fontFamily:'Montserrat,sans-serif', fontSize:'0.88rem', color:B.dark, background:'white', outline:'none', boxSizing:'border-box' }
+  const labelStyle = { fontFamily:'Montserrat,sans-serif', fontSize:'0.6rem', color:'#aaa', letterSpacing:'0.2em', textTransform:'uppercase', display:'block', marginBottom:8 }
+
   return (
-    <div className="mb-4">
-      <label className="block text-dark text-sm font-semibold font-body mb-1.5">{label}</label>
-      <input
-        className="w-full border border-gray-200 focus:border-coffee-500 rounded-xl px-3 py-2.5 font-body text-dark outline-none transition-colors bg-gray-50"
-        {...props}
-      />
-    </div>
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:50 }} />
+      <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }}
+        style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'calc(100% - 32px)', maxWidth:520, zIndex:60, background:'white', borderRadius:24, padding:28, maxHeight:'90vh', overflowY:'auto', boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
+      >
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
+          <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.9rem', color:B.dark, letterSpacing:'0.1em', textTransform:'uppercase' }}>{isEdit ? 'Edit Item' : 'New Item'}</div>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#ccc' }}><X size={20} /></button>
+        </div>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <ImageUpload preview={imagePreview} onChange={(f, p) => { setImageFile(f); setImagePreview(p) }} />
+
+          <div>
+            <label style={labelStyle}>Category</label>
+            <select value={form.category_id} onChange={e => set('category_id', e.target.value)} style={{ ...inputStyle, cursor:'pointer' }} onFocus={e => e.target.style.borderColor=B.brand} onBlur={e => e.target.style.borderColor='rgba(126,43,63,0.15)'}>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+
+          {[
+            { key:'name',           label:'Name (EN)',        placeholder:'e.g. Cappuccino',     tag:'input',    type:'text'   },
+            { key:'name_ar',        label:'Name (AR)',         placeholder:'مثال: كابتشينو',       tag:'input',    type:'text',   rtl:true },
+            { key:'description',    label:'Description (EN)', placeholder:'Short description...', tag:'textarea'               },
+            { key:'description_ar', label:'Description (AR)', placeholder:'وصف مختصر...',         tag:'textarea',               rtl:true },
+            { key:'price',          label:'Price (AED)',       placeholder:'0',                    tag:'input',    type:'number' },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={labelStyle}>{f.label}</label>
+              {f.tag === 'textarea' ? (
+                <textarea value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} rows={2} dir={f.rtl?'rtl':'ltr'} style={{ ...inputStyle, resize:'none' }} onFocus={e => e.target.style.borderColor=B.brand} onBlur={e => e.target.style.borderColor='rgba(126,43,63,0.15)'} />
+              ) : (
+                <input type={f.type} value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} dir={f.rtl?'rtl':'ltr'} style={inputStyle} onFocus={e => e.target.style.borderColor=B.brand} onBlur={e => e.target.style.borderColor='rgba(126,43,63,0.15)'} />
+              )}
+            </div>
+          ))}
+
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:12, background:B.blush }}>
+            <div>
+              <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:600, fontSize:'0.83rem', color:B.dark }}>Available on menu</div>
+              <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.67rem', color:'#aaa', marginTop:2 }}>Customers can see and order this item</div>
+            </div>
+            <button onClick={() => set('available', !form.available)} style={{ width:44, height:24, borderRadius:12, border:'none', cursor:'pointer', background: form.available ? B.brand : '#ddd', position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+              <div style={{ width:18, height:18, borderRadius:'50%', background:'white', position:'absolute', top:3, left: form.available ? 23 : 3, transition:'left 0.2s', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display:'flex', gap:10, marginTop:22 }}>
+          <button onClick={onClose} style={{ flex:1, padding:'13px', borderRadius:12, border:'1.5px solid rgba(126,43,63,0.12)', background:'white', color:'#888', fontFamily:'Montserrat,sans-serif', fontWeight:600, fontSize:'0.7rem', letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ flex:2, padding:'13px', borderRadius:12, border:'none', background: saving ? '#ccc' : B.brand, color:B.cream, fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.7rem', letterSpacing:'0.12em', textTransform:'uppercase', cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 6px 20px rgba(126,43,63,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            {saving ? <div style={{ width:18, height:18, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', animation:'spin 0.8s linear infinite' }} /> : (isEdit ? 'Save Changes' : 'Create Item')}
+          </button>
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
+function DeleteConfirm({ item, onClose, onDeleted }) {
+  const [deleting, setDeleting] = useState(false)
+  const handleDelete = async () => {
+    setDeleting(true)
+    try { await menuApi.deleteItem(item.id); toast.success('Item deleted'); onDeleted() }
+    catch { toast.error('Failed to delete'); setDeleting(false) }
+  }
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:50 }} />
+      <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }}
+        style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:320, zIndex:60, background:'white', borderRadius:20, padding:24, boxShadow:'0 24px 64px rgba(0,0,0,0.15)' }}
+      >
+        <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'0.88rem', color:B.dark, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Delete Item</div>
+        <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.82rem', color:'#666', marginBottom:20, lineHeight:1.5 }}>Remove <strong>{item.name}</strong>? This cannot be undone.</div>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={onClose} style={{ flex:1, padding:'11px', borderRadius:10, border:'1.5px solid rgba(0,0,0,0.08)', background:'white', color:'#888', fontFamily:'Montserrat,sans-serif', fontWeight:600, fontSize:'0.7rem', cursor:'pointer', letterSpacing:'0.08em', textTransform:'uppercase' }}>Cancel</button>
+          <button onClick={handleDelete} disabled={deleting} style={{ flex:1, padding:'11px', borderRadius:10, border:'none', background:'#dc2626', color:'white', fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.7rem', cursor:'pointer', letterSpacing:'0.08em', textTransform:'uppercase' }}>
+            {deleting ? '...' : 'Delete'}
+          </button>
+        </div>
+      </motion.div>
+    </>
   )
 }
 
 export default function AdminMenu() {
-  const qc = useQueryClient()
-  const [activeTab, setActiveTab] = useState('items')
-  const [catModal, setCatModal] = useState(null) // null | 'add' | { edit: cat }
-  const [itemModal, setItemModal] = useState(null)
-  const [catForm, setCatForm] = useState(INIT_CATEGORY)
-  const [itemForm, setItemForm] = useState(INIT_ITEM)
+  const [categories, setCategories] = useState([])
+  const [items,      setItems]      = useState([])
+  const [activeCat,  setActiveCat]  = useState(null)
+  const [loading,    setLoading]    = useState(true)
+  const [modal,      setModal]      = useState(null)
+  const [editItem,   setEditItem]   = useState(null)
 
-  const { data: catsData } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => menuApi.getCategories().then(r => r.data),
-    placeholderData: { categories: mockCats },
-    retry: false,
-  })
-  const { data: itemsData } = useQuery({
-    queryKey: ['menu-items'],
-    queryFn: () => menuApi.getAllItems().then(r => r.data),
-    placeholderData: { items: mockItems },
-    retry: false,
-  })
-
-  const categories = catsData?.categories || mockCats
-  const items = itemsData?.items || mockItems
-
-  const openAddCat = () => { setCatForm(INIT_CATEGORY); setCatModal('add') }
-  const openEditCat = (cat) => { setCatForm({ name: cat.name, name_ar: cat.name_ar, icon: cat.icon }); setCatModal({ edit: cat }) }
-
-  const openAddItem = () => { setItemForm({ ...INIT_ITEM, category_id: categories[0]?.id || '' }); setItemModal('add') }
-  const openEditItem = (item) => {
-    setItemForm({ name: item.name, name_ar: item.name_ar || '', description: item.description || '', description_ar: item.description_ar || '', price: item.price, category_id: item.category_id, available: item.available })
-    setItemModal({ edit: item })
-  }
-
-  const saveCategory = async () => {
+  const load = async () => {
     try {
-      if (catModal?.edit) {
-        await menuApi.updateCategory(catModal.edit.id, catForm)
-        mockCats = mockCats.map(c => c.id === catModal.edit.id ? { ...c, ...catForm } : c)
-      } else {
-        await menuApi.createCategory(catForm)
-        mockCats = [...mockCats, { id: nextCatId++, ...catForm }]
-      }
-    } catch { if (!catModal?.edit) mockCats = [...mockCats, { id: nextCatId++, ...catForm }]
-      else mockCats = mockCats.map(c => c.id === catModal.edit.id ? { ...c, ...catForm } : c)
-    }
-    qc.invalidateQueries(['categories'])
-    setCatModal(null)
-    toast.success('Category saved!')
+      const [catRes, itemRes] = await Promise.all([menuApi.getCategories(), menuApi.getAllItems()])
+      const cats  = catRes.data?.categories || []
+      const itms  = itemRes.data?.items      || []
+      setCategories(cats)
+      setItems(itms)
+      if (!activeCat && cats.length > 0) setActiveCat(cats[0].id)
+    } catch { toast.error('Failed to load menu') }
+    finally { setLoading(false) }
   }
 
-  const deleteCat = (id) => {
-    mockCats = mockCats.filter(c => c.id !== id)
-    qc.invalidateQueries(['categories'])
-    toast.success('Category deleted')
-    menuApi.deleteCategory(id).catch(() => {})
-  }
+  useEffect(() => { load() }, [])
 
-  const saveItem = async () => {
-    const data = { ...itemForm, price: parseFloat(itemForm.price) }
-    try {
-      const fd = new FormData()
-      Object.entries(data).forEach(([k,v]) => fd.append(k, v))
-      if (itemModal?.edit) await menuApi.updateItem(itemModal.edit.id, fd)
-      else await menuApi.createItem(fd)
-    } catch {}
-    if (itemModal?.edit) mockItems = mockItems.map(i => i.id === itemModal.edit.id ? { ...i, ...data } : i)
-    else mockItems = [...mockItems, { id: nextItemId++, ...data }]
-    qc.invalidateQueries(['menu-items'])
-    setItemModal(null)
-    toast.success('Item saved!')
-  }
-
-  const deleteItem = (id) => {
-    mockItems = mockItems.filter(i => i.id !== id)
-    qc.invalidateQueries(['menu-items'])
-    toast.success('Item deleted')
-    menuApi.deleteItem(id).catch(() => {})
-  }
-
-  const toggleAvailable = (item) => {
-    mockItems = mockItems.map(i => i.id === item.id ? { ...i, available: !i.available } : i)
-    qc.invalidateQueries(['menu-items'])
-    menuApi.updateItem(item.id, new FormData()).catch(() => {})
-  }
+  const filtered   = activeCat ? items.filter(i => i.category_id === activeCat) : items
+  const closeModal = () => { setModal(null); setEditItem(null) }
+  const afterSave  = () => { closeModal(); load() }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-bold text-dark">Menu Management</h1>
-        <div className="flex gap-2">
-          <button onClick={openAddCat} className="btn-secondary flex items-center gap-1.5 text-sm py-2">
-            <Plus size={16} /> Category
-          </button>
-          <button onClick={openAddItem} className="btn-primary flex items-center gap-1.5 text-sm py-2">
-            <Plus size={16} /> Item
-          </button>
+    <div style={{ padding:24, maxWidth:900, margin:'0 auto' }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
+        <div>
+          <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, fontSize:'1.1rem', color:B.dark, letterSpacing:'0.08em', textTransform:'uppercase' }}>Menu Management</div>
+          <div style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.7rem', color:'#aaa', marginTop:3 }}>{items.length} items · {categories.length} categories</div>
         </div>
+        <button onClick={() => { setEditItem(null); setModal('item') }} style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:12, border:'none', cursor:'pointer', background:B.brand, color:B.cream, fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.7rem', letterSpacing:'0.12em', textTransform:'uppercase', boxShadow:'0 6px 20px rgba(126,43,63,0.3)' }}>
+          <Plus size={16} /> New Item
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-5">
-        {['items','categories'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold font-body transition-all capitalize
-                       ${activeTab === tab ? 'bg-coffee-600 text-white' : 'bg-white text-coffee-600 border border-coffee-200'}`}
-          >
-            {tab}
+      {/* Category tabs */}
+      <div style={{ display:'flex', gap:6, overflowX:'auto', marginBottom:20, paddingBottom:2 }}>
+        {[{ id:null, name:`All (${items.length})` }, ...categories.map(c => ({ id:c.id, name:`${c.name} (${items.filter(i=>i.category_id===c.id).length})` }))].map(tab => (
+          <button key={tab.id} onClick={() => setActiveCat(tab.id)} style={{ flexShrink:0, padding:'7px 14px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:'0.65rem', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', background: activeCat===tab.id ? B.brand : 'white', color: activeCat===tab.id ? B.cream : '#aaa', boxShadow: activeCat===tab.id ? '0 4px 12px rgba(126,43,63,0.2)' : '0 1px 4px rgba(0,0,0,0.06)', transition:'all 0.2s', whiteSpace:'nowrap' }}>
+            {tab.name}
           </button>
         ))}
       </div>
 
-      {/* Items Table */}
-      {activeTab === 'items' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                {['Name','Arabic','Category','Price','Available','Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {items.map(item => {
-                const cat = categories.find(c => c.id === item.category_id)
-                return (
-                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3 font-body font-semibold text-dark text-sm">{item.name}</td>
-                    <td className="px-4 py-3 font-arabic text-dark text-sm" dir="rtl">{item.name_ar}</td>
-                    <td className="px-4 py-3 text-gray-500 text-sm font-body">{cat?.icon} {cat?.name}</td>
-                    <td className="px-4 py-3 font-bold text-coffee-700 font-body">{item.price} AED</td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => toggleAvailable(item)}>
-                        {item.available
-                          ? <ToggleRight className="text-green-500" size={22} />
-                          : <ToggleLeft className="text-gray-300" size={22} />
-                        }
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <button onClick={() => openEditItem(item)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil size={15} /></button>
-                        <button onClick={() => deleteItem(item.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={15} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      {/* Grid */}
+      {loading ? (
+        <div style={{ display:'flex', justifyContent:'center', paddingTop:60 }}>
+          <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid rgba(126,43,63,0.15)', borderTopColor:B.brand, animation:'spin 0.8s linear infinite' }} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign:'center', paddingTop:60 }}>
+          <div style={{ fontFamily:'Montserrat,sans-serif', color:'rgba(126,43,63,0.2)', fontSize:'0.6rem', letterSpacing:'0.3em', textTransform:'uppercase', marginBottom:8 }}>— No Items —</div>
+          <button onClick={() => { setEditItem(null); setModal('item') }} style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.7rem', fontWeight:700, color:B.brand, letterSpacing:'0.1em', textTransform:'uppercase', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>Add First Item</button>
+        </div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(210px, 1fr))', gap:16 }}>
+          {filtered.map(item => (
+            <div key={item.id} style={{ background:'white', borderRadius:16, overflow:'hidden', border:'1px solid rgba(126,43,63,0.08)', boxShadow:'0 2px 8px rgba(0,0,0,0.04)' }}>
+              {/* Image — always object-fit cover */}
+              <div style={{ height:150, background:B.blush, position:'relative', overflow:'hidden' }}>
+                {item.image ? (
+                  <img src={item.image} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} />
+                ) : (
+                  <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6 }}>
+                    <Image size={22} color='rgba(126,43,63,0.18)' />
+                    <span style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.58rem', color:'rgba(126,43,63,0.2)', letterSpacing:'0.1em', textTransform:'uppercase' }}>No Image</span>
+                  </div>
+                )}
+                <div style={{ position:'absolute', top:8, left:8, padding:'3px 9px', borderRadius:20, background: item.available ? 'rgba(22,163,74,0.85)' : 'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)' }}>
+                  <span style={{ fontFamily:'Montserrat,sans-serif', fontSize:'0.52rem', fontWeight:700, color:'white', letterSpacing:'0.1em', textTransform:'uppercase' }}>
+                    {item.available ? 'Available' : 'Hidden'}
+                  </span>
+                </div>
+              </div>
+              <div style={{ padding:'12px 14px' }}>
+                <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:700, fontSize:'0.85rem', color:B.dark }}>{item.name}</div>
+                {item.name_ar && <div style={{ fontFamily:'Noto Naskh Arabic,serif', fontSize:'0.78rem', color:'#aaa', marginTop:2 }} dir="rtl">{item.name_ar}</div>}
+                <div style={{ fontFamily:'Montserrat,sans-serif', fontWeight:800, color:B.brand, fontSize:'0.92rem', marginTop:4, marginBottom:12 }}>
+                  {item.price} <span style={{ fontSize:'0.58rem', fontWeight:400, color:'#ccc' }}>AED</span>
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button onClick={() => { setEditItem(item); setModal('item') }} style={{ flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer', background:'rgba(126,43,63,0.07)', color:B.brand, fontFamily:'Montserrat,sans-serif', fontSize:'0.62rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    <Pencil size={12} /> Edit
+                  </button>
+                  <button onClick={() => { setEditItem(item); setModal('delete') }} style={{ width:34, height:34, borderRadius:8, border:'none', cursor:'pointer', background:'rgba(220,38,38,0.06)', color:'#dc2626', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Categories Table */}
-      {activeTab === 'categories' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                {['Icon','Name','Arabic Name','Items','Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {categories.map(cat => (
-                <tr key={cat.id} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-3 text-2xl">{cat.icon}</td>
-                  <td className="px-4 py-3 font-body font-semibold text-dark">{cat.name}</td>
-                  <td className="px-4 py-3 font-arabic text-dark" dir="rtl">{cat.name_ar}</td>
-                  <td className="px-4 py-3 text-gray-500 text-sm">{items.filter(i => i.category_id === cat.id).length}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button onClick={() => openEditCat(cat)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil size={15} /></button>
-                      <button onClick={() => deleteCat(cat.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={15} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Category Modal */}
-      {catModal && (
-        <Modal title={catModal?.edit ? 'Edit Category' : 'Add Category'} onClose={() => setCatModal(null)}>
-          <Input label="Name (English)" value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})} placeholder="Hot Coffee" />
-          <Input label="Name (Arabic)" value={catForm.name_ar} onChange={e => setCatForm({...catForm, name_ar: e.target.value})} placeholder="قهوة ساخنة" dir="rtl" />
-          <div className="mb-4">
-            <label className="block text-dark text-sm font-semibold font-body mb-2">Icon</label>
-            <div className="grid grid-cols-6 gap-2">
-              {EMOJIS.map(em => (
-                <button key={em} onClick={() => setCatForm({...catForm, icon: em})}
-                  className={`text-2xl p-2 rounded-xl transition-all ${catForm.icon === em ? 'bg-coffee-100 ring-2 ring-coffee-500' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                  {em}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button onClick={saveCategory} className="btn-primary w-full flex items-center justify-center gap-2">
-            <Save size={16} /> Save
-          </button>
-        </Modal>
-      )}
-
-      {/* Item Modal */}
-      {itemModal && (
-        <Modal title={itemModal?.edit ? 'Edit Item' : 'Add Item'} onClose={() => setItemModal(null)}>
-          <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-0">
-            <Input label="Name (English)" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} />
-            <Input label="Name (Arabic)" value={itemForm.name_ar} onChange={e => setItemForm({...itemForm, name_ar: e.target.value})} dir="rtl" />
-            <Input label="Description" value={itemForm.description} onChange={e => setItemForm({...itemForm, description: e.target.value})} />
-            <Input label="Description (Arabic)" value={itemForm.description_ar} onChange={e => setItemForm({...itemForm, description_ar: e.target.value})} dir="rtl" />
-            <Input label="Price (AED)" type="number" value={itemForm.price} onChange={e => setItemForm({...itemForm, price: e.target.value})} />
-            <div className="mb-4">
-              <label className="block text-dark text-sm font-semibold font-body mb-1.5">Category</label>
-              <select
-                value={itemForm.category_id}
-                onChange={e => setItemForm({...itemForm, category_id: parseInt(e.target.value)})}
-                className="w-full border border-gray-200 focus:border-coffee-500 rounded-xl px-3 py-2.5 font-body text-dark outline-none bg-gray-50"
-              >
-                {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-              </select>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer mb-4">
-              <input type="checkbox" checked={itemForm.available} onChange={e => setItemForm({...itemForm, available: e.target.checked})} className="w-4 h-4 accent-coffee-600" />
-              <span className="font-body text-sm text-dark">Available</span>
-            </label>
-          </div>
-          <button onClick={saveItem} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">
-            <Save size={16} /> Save Item
-          </button>
-        </Modal>
-      )}
+      <AnimatePresence>
+        {modal === 'item'   && <ItemModal   key="item"   item={editItem} categories={categories} onClose={closeModal} onSaved={afterSave} />}
+        {modal === 'delete' && <DeleteConfirm key="del"  item={editItem} onClose={closeModal} onDeleted={afterSave} />}
+      </AnimatePresence>
     </div>
   )
 }
